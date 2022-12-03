@@ -134,19 +134,6 @@ class TBoard:
 
 
 
-class TPlayField:
-
-    points = []
-
-    def __init__(self):
-        for x in ['A','B','C','D','E','F','G','H','J','K']:
-            self.points = self.points + [TPoint(x,y) for y in range(1,11)]
-    @property
-    def points1(self):
-        return self.points
-
-
-
 def board_display1(board, name):
     x = 0
     with term.location(x, 0):
