@@ -55,15 +55,99 @@ class TShip:
 
     def match(self, shot):
         return shot in self.points
-#****************************************************************************************************
-    # И имеет методы:
 
-   #     Метод add_ship, который ставит корабль на доску (если ставить не получается, выбрасываем исключения).
-   #     Метод contour, который обводит корабль по контуру. Он будет полезен и в ходе самой игры, и в при расстановке кораблей (помечает соседние точки, где корабля по правилам быть не может).
-   #     Метод, который выводит доску в консоль в зависимости от параметра hid.
-   #     Метод out, который для точки (объекта класса Dot) возвращает True, если точка выходит за пределы поля, и False, если не выходит.
-   #     Метод shot, который делает выстрел по доске (если есть попытка выстрелить за пределы и в использованную точку, нужно выбрасывать исключения).
-   #  raise ValueError("Тебе не может быть столько лет")
+
+class TBoard:
+
+
+    def __init__(self, hidden=False, size=6):
+        self.hidden = hidden
+        self.size = size
+        self.ships_alive = 0
+
+        self.field = [["O"] * size for _ in range(size)]
+
+        self.busy = []
+        self.ships = []
+
+    def outofrange(self, point):
+        return (point.x < 0) or (point.x > self.size) or (point.y < 0) or (point.y > self.size)
+
+    def add_ship(self, ship):
+        for point in ship.points:
+            if self.outofrange(point) or point in self.busy:
+                raise BoardWrongShipException()
+        for d in ship.points:
+            self.field[d.x][d.y] = "■"
+            self.busy.append(d)
+
+        self.ships.append(ship)
+        self.contour(ship)
+
+    def contour(self, ship, verb=False):
+        near = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+        for d in ship.points:
+            for dx, dy in near:
+                cur = TPoint(d.x + dx, d.y + dy)
+                if not (self.outofrange(cur)) and cur not in self.busy:
+                    if verb:
+                        self.field[cur.x][cur.y] = "."
+                    self.busy.append(cur)
+
+    def __str__(self):
+        res = ""
+        res += "  | 1 | 2 | 3 | 4 | 5 | 6 |"
+        for i, row in enumerate(self.field):
+            res += f"\n{i + 1} | " + " | ".join(row) + " |"
+
+        if self.hidden:
+            res = res.replace("■", "O")
+        return res
+
+    def shot(self, d):
+        if self.outofrange(d):
+            raise BoardOutException()
+
+        if d in self.busy:
+            raise BoardUsedException()
+
+        self.busy.append(d)
+
+        for ship in self.ships:
+            if d in ship.dots:
+                ship.lives -= 1
+                self.field[d.x][d.y] = "X"
+                if ship.lives == 0:
+                    self.ships_alive += 1
+                    self.contour(ship, verb=True)
+                    print("Корабль уничтожен!")
+                    return False
+                else:
+                    print("Корабль ранен!")
+                    return True
+
+        self.field[d.x][d.y] = "."
+        print("Мимо!")
+        return False
+
+    def begin(self):
+        self.busy = []
+
+class BoardException(Exception):
+    pass
+
+class BoardOutException(BoardException):
+    def __str__(self):
+        return "Вы пытаетесь выстрелить за доску!"
+
+class BoardUsedException(BoardException):
+    def __str__(self):
+        return "Вы уже стреляли в эту клетку"
+
+class BoardWrongShipException(BoardException):
+    pass
+
+
 class TBoard:
     hidden = False
     ships_alive = 0
